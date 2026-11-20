@@ -1,4 +1,5 @@
 import AppKit
+import IslandCore
 import SwiftUI
 
 @main
@@ -17,14 +18,14 @@ struct IslandApp: App {
                 .keyboardShortcut("q")
         }
         Settings {
-            SettingsView()
+            SettingsView().environment(delegate.model)
         }
     }
 }
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let model = IslandModel()
+    let model = IslandModel()
     private var panel: IslandPanelController?
     private var nowPlaying: NowPlayingProvider?
     private var battery: BatteryProvider?
@@ -32,6 +33,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var audio: AudioOutputProvider?
     private var weather: WeatherProvider?
     private var focus: FocusProvider?
+    private var eq: EQEngine?
+    private var lockScreen: LockScreenController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -57,6 +60,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         fp.start()
         focus = fp
 
+        let engine = EQEngine()
+        engine.start()
+        eq = engine
+
+        let lock = LockScreenController(model: model)
+        lock.start()
+        lockScreen = lock
+
         let bat = BatteryProvider(model: model)
         bat.start()
         battery = bat
@@ -66,11 +77,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                                             queue: .main) { [weak self] note in
             MainActor.assumeIsolated {
                 guard let self else { return }
-                switch note.object as? String {
+                let command = note.object as? String ?? ""
+                // `eq:<bundle id>:<préréglage>` active l'EQ d'une app, `eq-off:<bundle id>` le coupe.
+                if command.hasPrefix("eq:") || command.hasPrefix("eq-off:") {
+                    let parts = command.split(separator: ":").map(String.init)
+                    guard parts.count >= 2 else { return }
+                    let app = parts[1]
+                    if parts[0] == "eq-off" {
+                        EQStore.shared.update(app) { $0.enabled = false }
+                    } else if let preset = Equalizer.presets.first(where: { $0.name == (parts.count > 2 ? parts[2] : "Basses") }) {
+                        EQStore.shared.update(app) { $0.enabled = true; $0.gains = preset.gains; $0.preset = preset.name }
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        DebugLog.write("eq status \(app): \(EQStore.shared.engineStatus[app]?.label ?? "aucun")")
+                    }
+                    return
+                }
+                switch command {
                 case "toggle":
                     self.model.isExpanded.toggle()
                     DebugLog.write("debug toggle -> \(self.model.isExpanded) mode=\(self.model.mode)")
                 case "toast": self.model.post(Toast(kind: .power(pluggedIn: true, percent: self.model.battery?.percent ?? 80)))
+                case "lock-preview":
+                    // Aperçu de la carte d'écran verrouillé, sans verrouiller (5 s).
+                    self.lockScreen?.show(onLockScreen: false)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) { self.lockScreen?.hidePreview() }
                 case "headphones":
                     // Rejoue l'annonce « écouteurs connectés » pour la sortie courante.
                     if let d = self.model.audio.current {
@@ -86,5 +117,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         nowPlaying?.stop()
+        eq?.stop()
     }
 }

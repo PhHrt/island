@@ -11,7 +11,12 @@ scripts/make-app.sh --run          # build release + assemble build/Island.app +
 scripts/island-debug.sh toggle     # ouvre / ferme l'île sans la souris
 scripts/island-debug.sh toast      # simule un toast de branchement
 scripts/island-debug.sh headphones # rejoue l'annonce de la sortie audio courante
+scripts/island-debug.sh lock-preview         # aperçu 5 s de la carte d'écran verrouillé
+scripts/island-debug.sh "eq:com.apple.Music:Basses"  # active l'EQ d'une app (eq-off:<id> pour couper)
 ```
+
+L'app est signée avec l'identité « Apple Development » du trousseau si elle existe, pour que macOS garde
+les autorisations (audio système, Bluetooth) entre deux builds. L'EQ demande « Enregistrement audio système ».
 
 Pas de CI GitHub (pas de minutes Actions) : tout se vérifie en local avec `scripts/check.sh`.
 
@@ -19,12 +24,15 @@ Debug : `touch ~/Library/Logs/Island.log` active un petit journal (raisons de fe
 
 ### Structure
 
-- `Sources/IslandCore` — logique pure testée (`swift test`) : parseur LRC, requêtes LRCLib, météo Open-Meteo
+- `Sources/IslandCore` — logique pure testée (`swift test`) : parseur LRC, mot à mot, requêtes LRCLib,
+  météo Open-Meteo, filtres et traitement de l'égaliseur
 - `Sources/Island/Island` — modèle observable (`IslandModel`), fenêtre d'encoche (`IslandPanel`), géométrie
 - `Sources/Island/Views` — forme de l'île, vues compacte / ouverte / toasts
 - `Sources/Island/Providers` — Now Playing (helper perl + MediaRemote), paroles (LRCLib + cache), sortie audio
   (Core Audio + batterie Bluetooth), météo (Open-Meteo), Concentration (INFocusStatusCenter), batterie (IOKit)
-- `Sources/Island/Settings` — réglages (`Prefs`, `SettingsView`), lancement à l'ouverture de session
+- `Sources/Island/Audio` — égaliseur par app (process taps Core Audio + `EQProcessor`)
+- `Sources/Island/LockScreen` — carte d'écran verrouillé (space SkyLight privé)
+- `Sources/Island/Settings` — réglages en onglets (Général, Égaliseur, Écran verrouillé, Diagnostics) (`Prefs`, `SettingsView`), lancement à l'ouverture de session
 - `Helpers/nowplaying` — helper C chargé dans `/usr/bin/perl` (flux JSON sur stdout, commandes sur stdin)
 
 ## Phase 0 — spikes

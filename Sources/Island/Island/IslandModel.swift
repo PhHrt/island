@@ -23,6 +23,8 @@ final class IslandModel {
     var lyrics: Lyrics?
     var weather: WeatherReport?
     var isFocusActive = false
+    var isLocked = false
+    var lockHeadphoneBattery: HeadphoneBattery?
     var audio = AudioOutputState()
 
     // Toast affiché en ce moment (géré par post(_:)).

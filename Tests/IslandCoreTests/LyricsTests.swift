@@ -94,3 +94,29 @@ struct LyricsQueryTests {
         #expect(!url.contains("album_name"))
     }
 }
+
+@Suite("Mot à mot")
+struct TimedWordsTests {
+    @Test func usesRealWordTimings() {
+        let l = LRCParser.parse("[00:01.00]<00:01.00>Hello <00:01.50>world\n[00:03.00]Next")
+        let w = l.timedWords(inLine: 0, trackDuration: 60)
+        #expect(w.map(\.text) == ["Hello", "world"])
+        #expect(w.map(\.start) == [1.0, 1.5])
+        #expect(w.last?.end == 3.0)
+    }
+
+    @Test func distributesByLetterCount() {
+        let l = LRCParser.parse("[00:10.00]ab abcd\n[00:13.00]x")
+        let w = l.timedWords(inLine: 0, trackDuration: 60)
+        #expect(w.count == 2)
+        #expect(w[0].start == 10)
+        #expect(abs(w[0].end - 11) < 1e-9)   // 3 s * 2/6
+        #expect(abs(w[1].end - 13) < 1e-9)
+    }
+
+    @Test func longSilenceDoesNotStretchWords() {
+        let l = LRCParser.parse("[00:10.00]un deux\n[01:00.00]x")
+        let w = l.timedWords(inLine: 0, trackDuration: 120)
+        #expect(w.last!.end <= 13.0 + 1e-9)  // 2 mots -> au plus 3 s
+    }
+}

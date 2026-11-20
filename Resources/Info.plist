@@ -15,6 +15,7 @@
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>
     <key>NSBluetoothAlwaysUsageDescription</key><string>Island lit le niveau de batterie de tes écouteurs Bluetooth pour l'afficher dans l'île.</string>
+    <key>NSAudioCaptureUsageDescription</key><string>Island capte le son de l'app choisie pour lui appliquer ton égaliseur. Rien n'est enregistré ni envoyé.</string>
     <key>NSFocusStatusUsageDescription</key><string>Island affiche un indicateur quand un mode Concentration est actif.</string>
 </dict>
 </plist>

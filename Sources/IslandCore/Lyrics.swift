@@ -222,3 +222,37 @@ public struct LyricsQuery: Equatable, Sendable {
         return t.trimmingCharacters(in: .whitespaces)
     }
 }
+
+/// Mot d'une ligne avec sa fenêtre de temps, pour le surlignage mot à mot.
+public struct TimedWord: Equatable, Sendable {
+    public var text: String
+    public var start: Double
+    public var end: Double
+}
+
+extension Lyrics {
+    /// Mots de la ligne `index` avec leurs horaires. Utilise les timings mot à mot s'ils existent,
+    /// sinon répartit la durée de la ligne au prorata du nombre de lettres de chaque mot.
+    public func timedWords(inLine index: Int, trackDuration: Double) -> [TimedWord] {
+        let line = lines[index]
+        let end = index + 1 < lines.count ? lines[index + 1].time : max(trackDuration, line.time + 4)
+        // Une ligne suivie d'un long silence ne doit pas s'étirer : on borne à 1 s par mot + 1 s.
+        if let words = line.words, !words.isEmpty {
+            return words.enumerated().map { i, w in
+                let wEnd = i + 1 < words.count ? words[i + 1].time : end
+                return TimedWord(text: w.text.trimmingCharacters(in: .whitespaces), start: w.time, end: wEnd)
+            }
+        }
+        let tokens = line.text.split(separator: " ").map(String.init)
+        guard !tokens.isEmpty else { return [] }
+        let span = min(end - line.time, Double(tokens.count) + 1)
+        let weights = tokens.map { Double(max($0.count, 1)) }
+        let total = weights.reduce(0, +)
+        var t = line.time
+        return zip(tokens, weights).map { token, w in
+            let d = span * w / total
+            defer { t += d }
+            return TimedWord(text: token, start: t, end: t + d)
+        }
+    }
+}

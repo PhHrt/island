@@ -114,12 +114,12 @@ final class AudioOutputProvider {
 
     // MARK: Core Audio
 
-    static func address(_ selector: AudioObjectPropertySelector,
+    nonisolated static func address(_ selector: AudioObjectPropertySelector,
                         scope: AudioObjectPropertyScope = kAudioObjectPropertyScopeGlobal) -> AudioObjectPropertyAddress {
         AudioObjectPropertyAddress(mSelector: selector, mScope: scope, mElement: kAudioObjectPropertyElementMain)
     }
 
-    static func defaultOutput() -> AudioDeviceID {
+    nonisolated static func defaultOutput() -> AudioDeviceID {
         var addr = address(kAudioHardwarePropertyDefaultOutputDevice)
         var id = AudioDeviceID(0)
         var size = UInt32(MemoryLayout<AudioDeviceID>.size)
@@ -127,7 +127,7 @@ final class AudioOutputProvider {
         return id
     }
 
-    static func outputDevices() -> [AudioDevice] {
+    nonisolated static func outputDevices() -> [AudioDevice] {
         let system = AudioObjectID(kAudioObjectSystemObject)
         var addr = address(kAudioHardwarePropertyDevices)
         var size: UInt32 = 0
@@ -147,7 +147,7 @@ final class AudioOutputProvider {
         }
     }
 
-    private static func uint32(_ id: AudioObjectID, _ selector: AudioObjectPropertySelector) -> UInt32 {
+    nonisolated private static func uint32(_ id: AudioObjectID, _ selector: AudioObjectPropertySelector) -> UInt32 {
         var addr = address(selector)
         var value: UInt32 = 0
         var size = UInt32(MemoryLayout<UInt32>.size)
@@ -155,7 +155,7 @@ final class AudioOutputProvider {
         return value
     }
 
-    private static func string(_ id: AudioObjectID, _ selector: AudioObjectPropertySelector) -> String {
+    nonisolated private static func string(_ id: AudioObjectID, _ selector: AudioObjectPropertySelector) -> String {
         var addr = address(selector)
         var value: Unmanaged<CFString>?
         var size = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
@@ -165,7 +165,7 @@ final class AudioOutputProvider {
 
     // MARK: Batterie Bluetooth (propriétés non documentées d'IOBluetoothDevice, lues prudemment)
 
-    static func battery(forDeviceNamed name: String) -> HeadphoneBattery? {
+    nonisolated static func battery(forDeviceNamed name: String) -> HeadphoneBattery? {
         guard let paired = IOBluetoothDevice.pairedDevices() as? [IOBluetoothDevice] else { return nil }
         guard let device = paired.first(where: { $0.isConnected() && $0.name == name })
             ?? paired.first(where: { $0.isConnected() && (name.contains($0.name ?? "\u{0}") || ($0.name ?? "").contains(name)) })

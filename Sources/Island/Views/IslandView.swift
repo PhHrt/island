@@ -212,18 +212,60 @@ struct ArtworkView: View {
 }
 
 /// Quatre barres qui ondulent pendant la lecture, à plat en pause.
-struct MusicBars: View {
+/// Animées par Core Animation (dans le serveur d'affichage) : quasiment aucun CPU pour l'app,
+/// contrairement à une animation SwiftUI recalculée à chaque image.
+struct MusicBars: NSViewRepresentable {
     let color: Color
     let isPlaying: Bool
 
-    var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 30, paused: !isPlaying)) { ctx in
-            let t = ctx.date.timeIntervalSinceReferenceDate
-            HStack(alignment: .center, spacing: 2.5) {
-                ForEach(0..<4, id: \.self) { i in
-                    let phase = t * (5.5 + Double(i) * 1.3) + Double(i) * 1.7
-                    let h = isPlaying ? 0.3 + 0.7 * abs(sin(phase)) : 0.25
-                    Capsule().fill(color).frame(width: 3).scaleEffect(y: h, anchor: .center)
+    func makeNSView(context: Context) -> BarsView { BarsView() }
+
+    func updateNSView(_ view: BarsView, context: Context) {
+        view.update(color: NSColor(color).cgColor, playing: isPlaying)
+    }
+
+    final class BarsView: NSView {
+        private let bars: [CALayer] = (0..<4).map { _ in CALayer() }
+        private let durations: [CFTimeInterval] = [0.42, 0.55, 0.37, 0.5]
+        private let peaks: [CGFloat] = [1.0, 0.75, 0.9, 0.65]
+        private var playing: Bool?
+
+        override init(frame: NSRect) {
+            super.init(frame: frame)
+            wantsLayer = true
+            bars.forEach { layer?.addSublayer($0) }
+        }
+
+        required init?(coder: NSCoder) { fatalError() }
+
+        override func layout() {
+            super.layout()
+            let w: CGFloat = 3, gap: CGFloat = 2.5
+            let total = 4 * w + 3 * gap
+            for (i, bar) in bars.enumerated() {
+                bar.bounds = CGRect(x: 0, y: 0, width: w, height: bounds.height)
+                bar.position = CGPoint(x: (bounds.width - total) / 2 + CGFloat(i) * (w + gap) + w / 2, y: bounds.midY)
+                bar.cornerRadius = w / 2
+            }
+        }
+
+        func update(color: CGColor, playing: Bool) {
+            bars.forEach { $0.backgroundColor = color }
+            guard playing != self.playing else { return }
+            self.playing = playing
+            for (i, bar) in bars.enumerated() {
+                bar.removeAllAnimations()
+                if playing {
+                    let a = CABasicAnimation(keyPath: "transform.scale.y")
+                    a.fromValue = 0.3
+                    a.toValue = peaks[i]
+                    a.duration = durations[i]
+                    a.autoreverses = true
+                    a.repeatCount = .infinity
+                    a.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                    bar.add(a, forKey: "bounce")
+                } else {
+                    bar.transform = CATransform3DMakeScale(1, 0.25, 1)
                 }
             }
         }

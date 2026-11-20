@@ -1,7 +1,7 @@
 import IslandCore
 import SwiftUI
 
-struct SettingsView: View {
+struct GeneralSettings: View {
     @AppStorage(Prefs.Key.showMusic) private var showMusic = true
     @AppStorage(Prefs.Key.chargingToasts) private var chargingToasts = true
     @AppStorage(Prefs.Key.lowBatteryAlerts) private var lowBatteryAlerts = true
@@ -84,12 +84,22 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 460)
-        .frame(minHeight: 520)
     }
 
     private func search() {
         let q = placeQuery
         Task { placeResults = await WeatherProvider.searchPlaces(q) }
+    }
+}
+
+struct SettingsView: View {
+    var body: some View {
+        TabView {
+            Tab("Général", systemImage: "gearshape") { GeneralSettings() }
+            Tab("Égaliseur", systemImage: "slider.vertical.3") { EqualizerSettings() }
+            Tab("Écran verrouillé", systemImage: "lock.display") { LockScreenSettings() }
+            Tab("Diagnostics", systemImage: "stethoscope") { DiagnosticsView() }
+        }
+        .frame(width: 620, height: 600)
     }
 }

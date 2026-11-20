@@ -18,8 +18,13 @@ clang -dynamiclib -fblocks -O2 -framework CoreFoundation \
   Helpers/nowplaying/mr_helper.c -o "$APP/Contents/Resources/nowplaying/mr_helper.dylib"
 cp Helpers/nowplaying/run.pl "$APP/Contents/Resources/nowplaying/run.pl"
 
-codesign --force --deep --sign - "$APP" >/dev/null 2>&1
-echo "OK : $APP"
+# Signature stable (identité « Apple Development » du trousseau) : macOS garde alors les autorisations
+# (audio système, Bluetooth…) d'un build à l'autre. Repli en ad hoc si aucune identité n'est trouvée.
+SIGN_ID="${ISLAND_SIGN_ID:-$(security find-identity -v -p codesigning 2>/dev/null | awk '/Apple Development/ {print $2; exit}')}"
+codesign --force --sign "${SIGN_ID:--}" "$APP/Contents/Resources/nowplaying/mr_helper.dylib" >/dev/null 2>&1
+codesign --force --sign "${SIGN_ID:--}" "$APP" >/dev/null 2>&1 || { echo "signature en échec"; exit 1; }
+[[ -n "$SIGN_ID" ]] && WHO="Apple Development" || WHO="ad hoc"
+echo "OK : $APP (signature $WHO)"
 
 if [[ "$1" == "--run" ]]; then
   pkill -x Island 2>/dev/null || true
