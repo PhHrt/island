@@ -1,0 +1,129 @@
+import AppKit
+import Observation
+import SwiftUI
+
+/// Ce que l'île affiche : un seul état partagé, observé par les vues SwiftUI.
+/// Les providers écrivent dedans (toujours sur le main thread), le coordinateur gère les toasts.
+@MainActor
+@Observable
+final class IslandModel {
+    enum Mode: Equatable { case idle, compact, expanded }
+
+    // Géométrie de l'encoche de l'écran courant.
+    var notch = NotchMetrics.fallback
+
+    // Interaction
+    var isExpanded = false
+    var isHovering = false
+
+    // Données des providers
+    var nowPlaying: NowPlaying?
+    var battery: BatteryState?
+
+    // Toast affiché en ce moment (géré par post(_:)).
+    private(set) var toast: Toast?
+    @ObservationIgnored private var toastQueue: [Toast] = []
+    @ObservationIgnored private var toastTask: Task<Void, Never>?
+
+    /// Envoie une commande au lecteur (branché par le provider Now Playing).
+    @ObservationIgnored var sendCommand: (NowPlayingCommand) -> Void = { _ in }
+    @ObservationIgnored var seek: (Double) -> Void = { _ in }
+
+    var mode: Mode {
+        if isExpanded { return .expanded }
+        if toast != nil { return .compact }
+        if Prefs.showMusic, nowPlaying?.isPlaying == true { return .compact }
+        return .idle
+    }
+
+    /// Taille de la forme noire (sans les « ailettes » du haut) pour le mode courant.
+    var islandSize: CGSize {
+        let n = notch
+        switch mode {
+        case .idle:
+            return CGSize(width: n.width, height: n.height)
+        case .compact:
+            return CGSize(width: n.width + 2 * Layout.compactWing, height: n.height)
+        case .expanded:
+            return CGSize(width: max(n.width + 2 * Layout.compactWing, Layout.expandedWidth),
+                          height: n.height + Layout.expandedBody)
+        }
+    }
+
+    // MARK: Toasts
+
+    func post(_ toast: Toast) {
+        toastQueue.append(toast)
+        if self.toast == nil { showNextToast() }
+    }
+
+    private func showNextToast() {
+        guard !toastQueue.isEmpty else { toast = nil; return }
+        toast = toastQueue.removeFirst()
+        if Prefs.haptics { Haptics.tap() }
+        toastTask?.cancel()
+        toastTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(2.6))
+            guard !Task.isCancelled else { return }
+            self?.showNextToast()
+        }
+    }
+}
+
+enum Layout {
+    static let compactWing: CGFloat = 76
+    static let expandedWidth: CGFloat = 520
+    static let expandedBody: CGFloat = 122
+    static let topFlare: CGFloat = 10
+    /// Taille fixe de la fenêtre transparente qui héberge l'île.
+    static let panelSize = CGSize(width: 760, height: 320)
+}
+
+struct NotchMetrics: Equatable {
+    var width: CGFloat
+    var height: CGFloat
+    var hasNotch: Bool
+
+    static let fallback = NotchMetrics(width: 200, height: 32, hasNotch: false)
+
+    /// Lit la géométrie réelle de l'encoche ; sans encoche, simule une petite pilule.
+    static func of(_ screen: NSScreen) -> NotchMetrics {
+        let top = screen.safeAreaInsets.top
+        if top > 0, let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea {
+            let width = screen.frame.width - left.width - right.width
+            return NotchMetrics(width: width, height: top, hasNotch: true)
+        }
+        let menuBar = screen.frame.maxY - screen.visibleFrame.maxY
+        return NotchMetrics(width: 190, height: max(menuBar, 24), hasNotch: false)
+    }
+}
+
+struct Toast: Equatable, Identifiable {
+    enum Kind: Equatable {
+        case power(pluggedIn: Bool, percent: Int)
+        case lowBattery(percent: Int)
+    }
+    let id = UUID()
+    let kind: Kind
+}
+
+enum Haptics {
+    static func tap() {
+        NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+    }
+}
+
+/// Journal de debug dans ~/Library/Logs/Island.log (activé seulement si ISLAND_DEBUG=1 ou le fichier existe déjà).
+enum DebugLog {
+    static let url = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/Island.log")
+
+    static func write(_ message: String) {
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        let line = "\(Date().formatted(.iso8601)) \(message)\n"
+        if let h = try? FileHandle(forWritingTo: url) {
+            h.seekToEndOfFile()
+            h.write(Data(line.utf8))
+            try? h.close()
+        }
+    }
+}
