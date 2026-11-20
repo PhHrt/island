@@ -6,18 +6,24 @@ Specs et plan : doc « Projet Island — Specs & plan ».
 ## Lancer l'app
 
 ```bash
-scripts/make-app.sh --run      # build release + assemble build/Island.app + relance
-scripts/island-debug.sh toggle # ouvre / ferme l'île sans la souris
-scripts/island-debug.sh toast  # simule un toast de branchement
+scripts/check.sh                   # vérification complète avant commit : tests + build + app
+scripts/make-app.sh --run          # build release + assemble build/Island.app + relance
+scripts/island-debug.sh toggle     # ouvre / ferme l'île sans la souris
+scripts/island-debug.sh toast      # simule un toast de branchement
+scripts/island-debug.sh headphones # rejoue l'annonce de la sortie audio courante
 ```
+
+Pas de CI GitHub (pas de minutes Actions) : tout se vérifie en local avec `scripts/check.sh`.
 
 Debug : `touch ~/Library/Logs/Island.log` active un petit journal (raisons de fermeture, etc.).
 
-### Structure (phase 1)
+### Structure
 
+- `Sources/IslandCore` — logique pure testée (`swift test`) : parseur LRC, requêtes LRCLib, météo Open-Meteo
 - `Sources/Island/Island` — modèle observable (`IslandModel`), fenêtre d'encoche (`IslandPanel`), géométrie
 - `Sources/Island/Views` — forme de l'île, vues compacte / ouverte / toasts
-- `Sources/Island/Providers` — Now Playing (helper perl + MediaRemote), batterie (IOKit)
+- `Sources/Island/Providers` — Now Playing (helper perl + MediaRemote), paroles (LRCLib + cache), sortie audio
+  (Core Audio + batterie Bluetooth), météo (Open-Meteo), Concentration (INFocusStatusCenter), batterie (IOKit)
 - `Sources/Island/Settings` — réglages (`Prefs`, `SettingsView`), lancement à l'ouverture de session
 - `Helpers/nowplaying` — helper C chargé dans `/usr/bin/perl` (flux JSON sur stdout, commandes sur stdin)
 

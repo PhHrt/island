@@ -1,4 +1,5 @@
 import AppKit
+import IslandCore
 import Observation
 import SwiftUI
 
@@ -19,6 +20,10 @@ final class IslandModel {
     // Données des providers
     var nowPlaying: NowPlaying?
     var battery: BatteryState?
+    var lyrics: Lyrics?
+    var weather: WeatherReport?
+    var isFocusActive = false
+    var audio = AudioOutputState()
 
     // Toast affiché en ce moment (géré par post(_:)).
     private(set) var toast: Toast?
@@ -28,12 +33,23 @@ final class IslandModel {
     /// Envoie une commande au lecteur (branché par le provider Now Playing).
     @ObservationIgnored var sendCommand: (NowPlayingCommand) -> Void = { _ in }
     @ObservationIgnored var seek: (Double) -> Void = { _ in }
+    @ObservationIgnored var selectOutput: (AudioDevice) -> Void = { _ in }
 
     var mode: Mode {
         if isExpanded { return .expanded }
         if toast != nil { return .compact }
         if Prefs.showMusic, nowPlaying?.isPlaying == true { return .compact }
         return .idle
+    }
+
+    /// Paroles synchronisées disponibles pour le morceau en cours.
+    var hasSyncedLyrics: Bool {
+        Prefs.lyrics && Prefs.showMusic && nowPlaying != nil && lyrics?.isSynced == true
+    }
+
+    /// Ligne de paroles affichée sous l'encoche en mode compact.
+    var showsCompactLyrics: Bool {
+        toast == nil && Prefs.lyricsInCompact && hasSyncedLyrics && nowPlaying?.isPlaying == true
     }
 
     /// Taille de la forme noire (sans les « ailettes » du haut) pour le mode courant.
@@ -43,10 +59,12 @@ final class IslandModel {
         case .idle:
             return CGSize(width: n.width, height: n.height)
         case .compact:
-            return CGSize(width: n.width + 2 * Layout.compactWing, height: n.height)
+            let lyricsWidth = showsCompactLyrics ? Layout.compactLyricsWidth : 0
+            return CGSize(width: max(n.width + 2 * Layout.compactWing, lyricsWidth),
+                          height: n.height + (showsCompactLyrics ? Layout.lyricLine : 0))
         case .expanded:
             return CGSize(width: max(n.width + 2 * Layout.compactWing, Layout.expandedWidth),
-                          height: n.height + Layout.expandedBody)
+                          height: n.height + Layout.expandedBody + (hasSyncedLyrics ? Layout.expandedLyrics : 0))
         }
     }
 
@@ -74,9 +92,12 @@ enum Layout {
     static let compactWing: CGFloat = 76
     static let expandedWidth: CGFloat = 520
     static let expandedBody: CGFloat = 122
+    static let expandedLyrics: CGFloat = 50
+    static let lyricLine: CGFloat = 26
+    static let compactLyricsWidth: CGFloat = 420
     static let topFlare: CGFloat = 10
     /// Taille fixe de la fenêtre transparente qui héberge l'île.
-    static let panelSize = CGSize(width: 760, height: 320)
+    static let panelSize = CGSize(width: 760, height: 380)
 }
 
 struct NotchMetrics: Equatable {
@@ -102,6 +123,7 @@ struct Toast: Equatable, Identifiable {
     enum Kind: Equatable {
         case power(pluggedIn: Bool, percent: Int)
         case lowBattery(percent: Int)
+        case audioDevice(name: String, symbol: String, battery: HeadphoneBattery?)
     }
     let id = UUID()
     let kind: Kind

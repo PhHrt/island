@@ -28,14 +28,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panel: IslandPanelController?
     private var nowPlaying: NowPlayingProvider?
     private var battery: BatteryProvider?
+    private var lyrics: LyricsProvider?
+    private var audio: AudioOutputProvider?
+    private var weather: WeatherProvider?
+    private var focus: FocusProvider?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         panel = IslandPanelController(model: model)
 
+        let lp = LyricsProvider(model: model)
+        lyrics = lp
+
         let np = NowPlayingProvider(model: model)
+        np.onChange = { [weak lp] track in lp?.trackChanged(track) }
         np.start()
         nowPlaying = np
+
+        let ap = AudioOutputProvider(model: model)
+        ap.start()
+        audio = ap
+
+        let wp = WeatherProvider(model: model)
+        wp.start()
+        weather = wp
+
+        let fp = FocusProvider(model: model)
+        fp.start()
+        focus = fp
 
         let bat = BatteryProvider(model: model)
         bat.start()
@@ -51,6 +71,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self.model.isExpanded.toggle()
                     DebugLog.write("debug toggle -> \(self.model.isExpanded) mode=\(self.model.mode)")
                 case "toast": self.model.post(Toast(kind: .power(pluggedIn: true, percent: self.model.battery?.percent ?? 80)))
+                case "headphones":
+                    // Rejoue l'annonce « écouteurs connectés » pour la sortie courante.
+                    if let d = self.model.audio.current {
+                        let b = AudioOutputProvider.battery(forDeviceNamed: d.name)
+                        DebugLog.write("headphones: \(d.name) transport=\(d.transport) battery=\(String(describing: b))")
+                        self.model.post(Toast(kind: .audioDevice(name: d.name, symbol: d.symbol, battery: b)))
+                    }
                 default: break
                 }
             }

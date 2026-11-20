@@ -14,6 +14,8 @@ final class NowPlayingProvider {
     private var lastArtworkPath: String?
     private var lastArtwork: NSImage?
     private var lastAccent = Color.white
+    /// Appelé après chaque message (nil = plus rien en lecture) ; sert au provider de paroles.
+    var onChange: ((NowPlaying?) -> Void)?
 
     init(model: IslandModel) {
         self.model = model
@@ -110,6 +112,7 @@ final class NowPlayingProvider {
         if msg.error != nil { return }
         guard msg.empty != true, let title = msg.title, !title.isEmpty else {
             if model.nowPlaying != nil { model.nowPlaying = nil }
+            onChange?(nil)
             return
         }
 
@@ -147,5 +150,6 @@ final class NowPlayingProvider {
             accent: lastAccent
         )
         if next != model.nowPlaying { model.nowPlaying = next }
+        onChange?(next)
     }
 }

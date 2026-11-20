@@ -1,6 +1,8 @@
+import AVKit
+import IslandCore
 import SwiftUI
 
-/// Vue ouverte : lecteur complet, ou un état vide, plus la batterie.
+/// Vue ouverte : lecteur + paroles, puis une ligne d'état (date, météo, Concentration, sortie audio, batterie).
 struct ExpandedView: View {
     @Environment(IslandModel.self) private var model
 
@@ -8,6 +10,10 @@ struct ExpandedView: View {
         VStack(spacing: 10) {
             if let np = model.nowPlaying, Prefs.showMusic {
                 PlayerView(nowPlaying: np)
+                if model.hasSyncedLyrics, let lyrics = model.lyrics {
+                    ExpandedLyrics(lyrics: lyrics, nowPlaying: np)
+                        .frame(height: Layout.expandedLyrics - 10)
+                }
             } else {
                 HStack(spacing: 10) {
                     ArtworkView(image: nil, size: 52, corner: 12)
@@ -22,12 +28,11 @@ struct ExpandedView: View {
         }
         .padding(.horizontal, 22)
         .padding(.bottom, 14)
-        .foregroundStyle(.white)
+        .foregroundStyle(.primary)
     }
 }
 
 struct PlayerView: View {
-    @Environment(IslandModel.self) private var model
     let nowPlaying: NowPlaying
 
     var body: some View {
@@ -43,9 +48,54 @@ struct PlayerView: View {
                     }
                 }
                 Spacer(minLength: 8)
-                Controls(isPlaying: nowPlaying.isPlaying, accent: nowPlaying.accent)
+                Controls(isPlaying: nowPlaying.isPlaying)
             }
             Scrubber(nowPlaying: nowPlaying)
+        }
+    }
+}
+
+/// Ligne courante (avec remplissage progressif) et ligne suivante en retrait.
+struct ExpandedLyrics: View {
+    let lyrics: Lyrics
+    let nowPlaying: NowPlaying
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 0.1)) { ctx in
+            let t = nowPlaying.elapsed(at: ctx.date)
+            let idx = lyrics.lineIndex(at: t)
+            let current = idx.map { lyrics.lines[$0].text } ?? ""
+            let nextIdx = (idx ?? -1) + 1
+            let next = nextIdx < lyrics.lines.count ? lyrics.lines[nextIdx].text : ""
+            let progress = idx.map { lyrics.progress(inLine: $0, at: t, trackDuration: nowPlaying.duration) } ?? 0
+
+            VStack(spacing: 3) {
+                Text(current.isEmpty ? "♪" : current)
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .overlay {
+                        // Remplissage de gauche à droite au fil de la ligne.
+                        GeometryReader { geo in
+                            Text(current.isEmpty ? "♪" : current)
+                                .font(.system(size: 14, weight: .bold, design: .rounded))
+                                .foregroundStyle(nowPlaying.accent)
+                                .frame(width: geo.size.width, alignment: .center)
+                                .mask(alignment: .leading) {
+                                    Rectangle().frame(width: geo.size.width * progress)
+                                }
+                        }
+                    }
+                    .lineLimit(1)
+                Text(next)
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+            }
+            .id(idx ?? -1)
+            .transition(.asymmetric(insertion: .move(edge: .bottom).combined(with: .opacity),
+                                    removal: .move(edge: .top).combined(with: .opacity)))
+            .animation(.easeOut(duration: 0.3), value: idx)
+            .frame(maxWidth: .infinity)
         }
     }
 }
@@ -53,7 +103,6 @@ struct PlayerView: View {
 struct Controls: View {
     @Environment(IslandModel.self) private var model
     let isPlaying: Bool
-    let accent: Color
 
     var body: some View {
         HStack(spacing: 14) {
@@ -102,8 +151,8 @@ struct Scrubber: View {
                 Text(format(fraction * duration)).frame(width: 40, alignment: .trailing)
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        Capsule().fill(.white.opacity(0.18))
-                        Capsule().fill(active ? nowPlaying.accent : .white.opacity(0.85))
+                        Capsule().fill(.primary.opacity(0.18))
+                        Capsule().fill(active ? nowPlaying.accent : .primary.opacity(0.85))
                             .frame(width: max(0, min(1, fraction)) * geo.size.width)
                     }
                     .frame(height: active ? 7 : 4)
@@ -114,7 +163,6 @@ struct Scrubber: View {
                             .onChanged { v in dragFraction = max(0, min(1, v.location.x / geo.size.width)) }
                             .onEnded { _ in
                                 if let f = dragFraction, duration > 0 { model.seek(f * duration) }
-                                // Garde la position visée le temps que le helper confirme.
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { dragFraction = nil }
                             }
                     )
@@ -140,16 +188,33 @@ struct Scrubber: View {
 
 struct StatusRow: View {
     @Environment(IslandModel.self) private var model
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 10) {
             Text(Date.now, format: .dateTime.weekday(.wide).day().month(.wide))
-                .textCase(.none)
+            if let w = model.weather {
+                HStack(spacing: 4) {
+                    Image(systemName: w.symbol)
+                        // Les nuages « multicolores » sont blancs : illisibles sur le thème clair.
+                        .symbolRenderingMode(colorScheme == .dark ? .multicolor : .hierarchical)
+                    Text("\(Int(w.temperature.rounded()))°").monospacedDigit()
+                }
+                .help("\(w.place) · \(w.label)" + (w.high.map { " · max \(Int($0.rounded()))°" } ?? "")
+                      + (w.low.map { " · min \(Int($0.rounded()))°" } ?? ""))
+            }
             Spacer()
+            if model.isFocusActive {
+                Image(systemName: "moon.fill").foregroundStyle(.indigo).help("Mode Concentration actif")
+            }
+            OutputMenu()
+            AirPlayButton().frame(width: 18, height: 18).help("AirPlay")
             if let b = model.battery {
-                Image(systemName: b.isCharging ? "battery.100percent.bolt" : batteryIcon(b.percent))
-                    .foregroundStyle(b.percent <= 20 && !b.pluggedIn ? .red : .secondary)
-                Text("\(b.percent) %").monospacedDigit()
+                HStack(spacing: 4) {
+                    Image(systemName: b.isCharging ? "battery.100percent.bolt" : batteryIcon(b.percent))
+                        .foregroundStyle(b.percent <= 20 && !b.pluggedIn ? .red : .secondary)
+                    Text("\(b.percent) %").monospacedDigit()
+                }
             }
         }
         .font(.system(size: 11, weight: .medium))
@@ -165,4 +230,41 @@ struct StatusRow: View {
         default: "battery.100percent"
         }
     }
+}
+
+/// Menu des sorties audio : la sortie courante est cochée, un clic change la sortie par défaut.
+struct OutputMenu: View {
+    @Environment(IslandModel.self) private var model
+
+    var body: some View {
+        Menu {
+            ForEach(model.audio.devices) { device in
+                Button {
+                    model.selectOutput(device)
+                } label: {
+                    Label(device.name, systemImage: device.id == model.audio.currentID ? "checkmark" : device.symbol)
+                }
+            }
+        } label: {
+            Image(systemName: model.audio.current?.symbol ?? "speaker.wave.2.fill")
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help(model.audio.current.map { "Sortie : \($0.name)" } ?? "Sortie audio")
+    }
+}
+
+/// Bouton AirPlay système (liste les enceintes AirPlay / HomePod du réseau).
+struct AirPlayButton: NSViewRepresentable {
+    func makeNSView(context: Context) -> AVRoutePickerView {
+        let v = AVRoutePickerView()
+        v.isRoutePickerButtonBordered = false
+        v.setRoutePickerButtonColor(.secondaryLabelColor, for: .normal)
+        v.setRoutePickerButtonColor(.labelColor, for: .active)
+        return v
+    }
+
+    func updateNSView(_ nsView: AVRoutePickerView, context: Context) {}
 }

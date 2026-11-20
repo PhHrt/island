@@ -1,3 +1,4 @@
+import IslandCore
 import SwiftUI
 
 struct SettingsView: View {
@@ -7,8 +8,20 @@ struct SettingsView: View {
     @AppStorage(Prefs.Key.haptics) private var haptics = true
     @AppStorage(Prefs.Key.hoverToOpen) private var hoverToOpen = true
     @AppStorage(Prefs.Key.showMenuBarIcon) private var showMenuBarIcon = true
+    @AppStorage(Prefs.Key.lyrics) private var lyrics = true
+    @AppStorage(Prefs.Key.lyricsInCompact) private var lyricsInCompact = true
+    @AppStorage(Prefs.Key.weather) private var weather = true
+    @AppStorage(Prefs.Key.weatherPlace) private var weatherPlace = ""
+    @AppStorage(Prefs.Key.weatherLatitude) private var weatherLatitude = 48.8534
+    @AppStorage(Prefs.Key.weatherLongitude) private var weatherLongitude = 2.3488
+    @AppStorage(Prefs.Key.audioDeviceToasts) private var audioDeviceToasts = true
+    @AppStorage(Prefs.Key.theme) private var theme = Prefs.Theme.dark.rawValue
+    @AppStorage(Prefs.Key.screen) private var screen = Prefs.ScreenChoice.notch.rawValue
+
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
     @State private var loginError: String?
+    @State private var placeQuery = ""
+    @State private var placeResults: [OpenMeteoGeocoding.Place] = []
 
     var body: some View {
         Form {
@@ -25,8 +38,41 @@ struct SettingsView: View {
                 Toggle("Ouvrir l'île au survol", isOn: $hoverToOpen)
                 Toggle("Retour haptique", isOn: $haptics)
             }
+            Section("Apparence") {
+                Picker("Thème de l'île ouverte", selection: $theme) {
+                    ForEach(Prefs.Theme.allCases) { Text($0.label).tag($0.rawValue) }
+                }
+                Picker("Écran", selection: $screen) {
+                    ForEach(Prefs.ScreenChoice.allCases) { Text($0.label).tag($0.rawValue) }
+                }
+            }
             Section("Musique") {
                 Toggle("Afficher la lecture en cours", isOn: $showMusic)
+                Toggle("Paroles synchronisées (LRCLib)", isOn: $lyrics)
+                Toggle("Ligne de paroles sous l'encoche", isOn: $lyricsInCompact)
+                    .disabled(!lyrics)
+                Text("Seuls le titre, l'artiste, l'album et la durée sont envoyés à LRCLib. Désactivé : aucun appel réseau.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Section("Audio") {
+                Toggle("Annoncer les écouteurs Bluetooth connectés", isOn: $audioDeviceToasts)
+            }
+            Section("Météo") {
+                Toggle("Afficher la météo (Open-Meteo)", isOn: $weather)
+                LabeledContent("Ville", value: weatherPlace)
+                TextField("Rechercher une ville", text: $placeQuery)
+                    .onSubmit { search() }
+                    .disabled(!weather)
+                ForEach(placeResults, id: \.displayName) { place in
+                    Button(place.displayName) {
+                        weatherPlace = place.displayName
+                        weatherLatitude = place.latitude
+                        weatherLongitude = place.longitude
+                        placeResults = []
+                        placeQuery = ""
+                    }
+                    .buttonStyle(.link)
+                }
             }
             Section("Batterie") {
                 Toggle("Afficher le branchement / débranchement", isOn: $chargingToasts)
@@ -38,7 +84,12 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 440)
-        .fixedSize(horizontal: false, vertical: true)
+        .frame(width: 460)
+        .frame(minHeight: 520)
+    }
+
+    private func search() {
+        let q = placeQuery
+        Task { placeResults = await WeatherProvider.searchPlaces(q) }
     }
 }
