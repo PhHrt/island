@@ -30,6 +30,11 @@ Debug : `touch ~/Library/Logs/Island.log` active un petit journal (raisons de fe
 - Réseau local uniquement, TLS avec la clé du QR code (stockée dans le trousseau des deux côtés).
 - Test sans iPhone : `swift run -c release portal-send "<lien>" <port> <fichier>` (port : `island-debug.sh portal-info`).
 - Simulateur : `xcrun simctl launch booted dev.island.portal -pairLink "<lien>" -autoSendText "…"`.
+- **Renouvellement automatique** (profil gratuit de 7 jours) : `scripts/install-refresh.sh` installe une tâche
+  launchd (12 h 15 et 20 h 15) qui lance `scripts/refresh-iphone.sh`. Elle ne fait rien tant qu'il reste plus de
+  3 jours, sinon reconstruit et réinstalle l'app (câble ou même Wi-Fi). Config locale non versionnée :
+  `scripts/refresh-iphone.local.env` (`DEVICE_ID`, `TEAM_ID`). Journal : `~/Library/Logs/Island-refresh.log`.
+  Retirer la tâche : `scripts/install-refresh.sh --remove`.
 
 ### Structure
 

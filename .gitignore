@@ -8,3 +8,4 @@ DerivedData/
 # App iPhone : projet généré par xcodegen
 PortalApp/*.xcodeproj/
 PortalApp/Sources/Info.plist
+scripts/refresh-iphone.local.env
