@@ -35,6 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var focus: FocusProvider?
     private var eq: EQEngine?
     private var lockScreen: LockScreenController?
+    private let arrival = PortalArrivalController()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -68,6 +69,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         lock.start()
         lockScreen = lock
 
+        let portal = PortalService.shared
+        portal.model = model
+        portal.onArrival = { [weak self] item in self?.arrival.show(item) }
+        portal.applyPreference()
+
         let bat = BatteryProvider(model: model)
         bat.start()
         battery = bat
@@ -98,6 +104,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self.model.isExpanded.toggle()
                     DebugLog.write("debug toggle -> \(self.model.isExpanded) mode=\(self.model.mode)")
                 case "toast": self.model.post(Toast(kind: .power(pluggedIn: true, percent: self.model.battery?.percent ?? 80)))
+                case "portal-info":
+                    // Lien d'appairage et port, pour tester avec `portal-send` (journal local uniquement).
+                    DebugLog.write("portal-info \(PortalService.shared.pairing.url.absoluteString) port=\(PortalService.shared.port ?? 0)")
                 case "lock-preview":
                     // Aperçu de la carte d'écran verrouillé, sans verrouiller (5 s).
                     self.lockScreen?.show(onLockScreen: false)

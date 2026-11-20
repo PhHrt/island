@@ -171,6 +171,7 @@ struct ToastView: View {
         case .power(let plugged, _): plugged ? "bolt.fill" : "powerplug.portrait"
         case .lowBattery: "battery.25percent"
         case .audioDevice(_, let symbol, _): symbol
+        case .portal(_, let symbol): symbol
         }
     }
 
@@ -179,6 +180,7 @@ struct ToastView: View {
         case .power(let plugged, _): plugged ? .green : .white
         case .lowBattery(let p): p <= 10 ? .red : .yellow
         case .audioDevice(_, _, let b): (b?.buds ?? 100) <= 20 ? .yellow : .white
+        case .portal: .cyan
         }
     }
 
@@ -186,6 +188,7 @@ struct ToastView: View {
         switch toast.kind {
         case .power(_, let p), .lowBattery(let p): "\(p) %"
         case .audioDevice(_, _, let b): b?.buds.map { "\($0) %" } ?? "Connecté"
+        case .portal: "Reçu"
         }
     }
 }

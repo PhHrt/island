@@ -4,3 +4,7 @@ build/
 xcuserdata/
 DerivedData/
 *.dylib
+
+# App iPhone : projet généré par xcodegen
+PortalApp/*.xcodeproj/
+PortalApp/Sources/Info.plist

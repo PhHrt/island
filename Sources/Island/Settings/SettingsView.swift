@@ -98,6 +98,7 @@ struct SettingsView: View {
             Tab("Général", systemImage: "gearshape") { GeneralSettings() }
             Tab("Égaliseur", systemImage: "slider.vertical.3") { EqualizerSettings() }
             Tab("Écran verrouillé", systemImage: "lock.display") { LockScreenSettings() }
+            Tab("Portal", systemImage: "iphone.and.arrow.forward") { PortalSettings() }
             Tab("Diagnostics", systemImage: "stethoscope") { DiagnosticsView() }
         }
         .frame(width: 620, height: 600)

@@ -1,0 +1,46 @@
+# App iPhone « Island Portal ». Générer le projet Xcode : `cd PortalApp && xcodegen`
+# (le .xcodeproj généré n'est pas versionné).
+name: IslandPortal
+options:
+  bundleIdPrefix: dev.island
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+packages:
+  Island:
+    path: ..
+targets:
+  IslandPortal:
+    type: application
+    platform: iOS
+    sources:
+      - Sources
+    dependencies:
+      - package: Island
+        product: PortalKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.island.portal
+        PRODUCT_NAME: Island Portal
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic
+        # Pour installer sur l'iPhone : choisir son équipe dans Xcode (Signing & Capabilities).
+        DEVELOPMENT_TEAM: ""
+        INFOPLIST_KEY_CFBundleDisplayName: Portal
+        INFOPLIST_KEY_NSCameraUsageDescription: Portal utilise l'appareil photo pour scanner le QR code affiché par Island sur ton Mac.
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: Portal envoie tes fichiers à ton Mac sur le réseau local.
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+    info:
+      path: Sources/Info.plist
+      properties:
+        NSBonjourServices:
+          - _islandportal._tcp
+        CFBundleDevelopmentRegion: fr
+        CFBundleURLTypes:
+          - CFBundleURLSchemes: [islandportal]
+            CFBundleURLName: dev.island.portal.pairing

@@ -6,7 +6,7 @@ Specs et plan : doc « Projet Island — Specs & plan ».
 ## Lancer l'app
 
 ```bash
-scripts/check.sh                   # vérification complète avant commit : tests + build + app
+scripts/check.sh [--ios]           # vérification complète avant commit : tests + build + app (+ app iPhone)
 scripts/make-app.sh --run          # build release + assemble build/Island.app + relance
 scripts/island-debug.sh toggle     # ouvre / ferme l'île sans la souris
 scripts/island-debug.sh toast      # simule un toast de branchement
@@ -22,6 +22,15 @@ Pas de CI GitHub (pas de minutes Actions) : tout se vérifie en local avec `scri
 
 Debug : `touch ~/Library/Logs/Island.log` active un petit journal (raisons de fermeture, etc.).
 
+### Portal (iPhone -> Mac)
+
+- App iPhone dans `PortalApp/` : `cd PortalApp && xcodegen && open IslandPortal.xcodeproj`. Pour l'installer sur
+  ton iPhone, choisis ton équipe dans Signing & Capabilities (un compte gratuit expire au bout de 7 jours).
+- Appairage : Island → Réglages → Portal, scanner le QR code (ou coller le lien sur simulateur).
+- Réseau local uniquement, TLS avec la clé du QR code (stockée dans le trousseau des deux côtés).
+- Test sans iPhone : `swift run -c release portal-send "<lien>" <port> <fichier>` (port : `island-debug.sh portal-info`).
+- Simulateur : `xcrun simctl launch booted dev.island.portal -pairLink "<lien>" -autoSendText "…"`.
+
 ### Structure
 
 - `Sources/IslandCore` — logique pure testée (`swift test`) : parseur LRC, mot à mot, requêtes LRCLib,
@@ -30,6 +39,8 @@ Debug : `touch ~/Library/Logs/Island.log` active un petit journal (raisons de fe
 - `Sources/Island/Views` — forme de l'île, vues compacte / ouverte / toasts
 - `Sources/Island/Providers` — Now Playing (helper perl + MediaRemote), paroles (LRCLib + cache), sortie audio
   (Core Audio + batterie Bluetooth), météo (Open-Meteo), Concentration (INFocusStatusCenter), batterie (IOKit)
+- `Sources/PortalKit` — protocole et transport Portal (TLS-PSK, Bonjour), partagé Mac + iPhone, testé en boucle locale
+- `Sources/Island/Portal` — réception côté Mac (trousseau, animation d'arrivée, dernier fichier glissable)
 - `Sources/Island/Audio` — égaliseur par app (process taps Core Audio + `EQProcessor`)
 - `Sources/Island/LockScreen` — carte d'écran verrouillé (space SkyLight privé)
 - `Sources/Island/Settings` — réglages en onglets (Général, Égaliseur, Écran verrouillé, Diagnostics) (`Prefs`, `SettingsView`), lancement à l'ouverture de session

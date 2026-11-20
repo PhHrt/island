@@ -65,8 +65,10 @@ final class IslandModel {
             return CGSize(width: max(n.width + 2 * Layout.compactWing, lyricsWidth),
                           height: n.height + (showsCompactLyrics ? Layout.lyricLine : 0))
         case .expanded:
+            let shelf = PortalService.shared.recent.map { Date().timeIntervalSince($0.date) < 15 * 60 } ?? false
             return CGSize(width: max(n.width + 2 * Layout.compactWing, Layout.expandedWidth),
-                          height: n.height + Layout.expandedBody + (hasSyncedLyrics ? Layout.expandedLyrics : 0))
+                          height: n.height + Layout.expandedBody + (hasSyncedLyrics ? Layout.expandedLyrics : 0)
+                              + (shelf ? Layout.portalShelf : 0))
         }
     }
 
@@ -97,6 +99,7 @@ enum Layout {
     static let expandedLyrics: CGFloat = 50
     static let lyricLine: CGFloat = 26
     static let compactLyricsWidth: CGFloat = 420
+    static let portalShelf: CGFloat = 56
     static let topFlare: CGFloat = 10
     /// Taille fixe de la fenêtre transparente qui héberge l'île.
     static let panelSize = CGSize(width: 760, height: 380)
@@ -126,6 +129,7 @@ struct Toast: Equatable, Identifiable {
         case power(pluggedIn: Bool, percent: Int)
         case lowBattery(percent: Int)
         case audioDevice(name: String, symbol: String, battery: HeadphoneBattery?)
+        case portal(name: String, symbol: String)
     }
     let id = UUID()
     let kind: Kind

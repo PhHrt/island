@@ -24,6 +24,9 @@ struct ExpandedView: View {
                     Spacer()
                 }
             }
+            if let item = PortalService.shared.recent, Date().timeIntervalSince(item.date) < 15 * 60 {
+                PortalShelf(item: item)
+            }
             StatusRow()
         }
         .padding(.horizontal, 22)
@@ -267,4 +270,41 @@ struct AirPlayButton: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: AVRoutePickerView, context: Context) {}
+}
+
+/// Dernier fichier reçu par Portal : glisser vers le Finder ou une app, clic pour l'afficher dans le Finder.
+struct PortalShelf: View {
+    let item: PortalItem
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Group {
+                if let t = item.thumbnail {
+                    Image(nsImage: t).resizable().aspectRatio(contentMode: .fill)
+                } else {
+                    Image(systemName: PortalService.symbol(for: item))
+                }
+            }
+            .frame(width: 30, height: 30)
+            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(item.name).font(.system(size: 12, weight: .semibold)).lineLimit(1)
+                Text("Reçu via Portal · glisser pour déplacer").font(.system(size: 10.5)).foregroundStyle(.secondary)
+            }
+            Spacer()
+            if let url = item.url {
+                Button { NSWorkspace.shared.activateFileViewerSelecting([url]) } label: {
+                    Image(systemName: "folder")
+                }
+                .buttonStyle(.plain)
+                .help("Afficher dans le Finder")
+            }
+        }
+        .padding(8)
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.primary.opacity(0.08)))
+        .onDrag {
+            if let url = item.url { return NSItemProvider(contentsOf: url) ?? NSItemProvider() }
+            return NSItemProvider()
+        }
+    }
 }
