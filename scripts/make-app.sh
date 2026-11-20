@@ -1,6 +1,8 @@
 #!/bin/zsh
 # Construit build/Island.app : binaire Swift (release) + helper Now Playing + Info.plist, signé ad hoc.
-# Usage : scripts/make-app.sh [--run]   (--run relance l'app après le build)
+# Usage : scripts/make-app.sh [--run | --install]
+#   --run     relance l'app depuis build/ (développement)
+#   --install copie l'app dans /Applications et la relance depuis là (usage quotidien)
 set -e
 cd "$(dirname "$0")/.."
 
@@ -31,4 +33,15 @@ if [[ "$1" == "--run" ]]; then
   sleep 0.3
   open "$APP"
   echo "Island lancé"
+elif [[ "$1" == "--install" ]]; then
+  DEST=/Applications/Island.app
+  if [[ -d "$DEST" ]] && [[ "$(defaults read "$DEST/Contents/Info" CFBundleIdentifier 2>/dev/null)" != "dev.island.app" ]]; then
+    echo "$DEST existe et n'est pas Island : installation annulée"; exit 1
+  fi
+  pkill -x Island 2>/dev/null || true
+  sleep 0.5
+  rm -rf "$DEST"
+  ditto "$APP" "$DEST"
+  open "$DEST"
+  echo "Island installé dans $DEST et lancé"
 fi

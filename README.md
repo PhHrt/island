@@ -7,8 +7,10 @@ Specs et plan : doc « Projet Island — Specs & plan ».
 
 ```bash
 scripts/check.sh [--ios]           # vérification complète avant commit : tests + build + app (+ app iPhone)
-scripts/make-app.sh --run          # build release + assemble build/Island.app + relance
+scripts/make-app.sh --install      # build + installe dans /Applications et relance (usage quotidien)
+scripts/make-app.sh --run          # build + relance depuis build/ (développement)
 scripts/island-debug.sh toggle     # ouvre / ferme l'île sans la souris
+scripts/island-debug.sh login-on   # active le lancement à l'ouverture de session (login-off pour couper)
 scripts/island-debug.sh toast      # simule un toast de branchement
 scripts/island-debug.sh headphones # rejoue l'annonce de la sortie audio courante
 scripts/island-debug.sh lock-preview         # aperçu 5 s de la carte d'écran verrouillé

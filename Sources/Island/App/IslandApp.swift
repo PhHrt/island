@@ -104,6 +104,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self.model.isExpanded.toggle()
                     DebugLog.write("debug toggle -> \(self.model.isExpanded) mode=\(self.model.mode)")
                 case "toast": self.model.post(Toast(kind: .power(pluggedIn: true, percent: self.model.battery?.percent ?? 80)))
+                case "login-on", "login-off":
+                    let error = LaunchAtLogin.set(command == "login-on")
+                    DebugLog.write("launch at login -> \(LaunchAtLogin.isEnabled) \(error ?? "")")
                 case "portal-info":
                     // Lien d'appairage et port, pour tester avec `portal-send` (journal local uniquement).
                     DebugLog.write("portal-info \(PortalService.shared.pairing.url.absoluteString) port=\(PortalService.shared.port ?? 0)")
