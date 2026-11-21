@@ -1,8 +1,8 @@
 ISLAND — INSTALLATION
 =====================
 
-Island fait de l'encoche du Mac une zone vivante : musique en cours,
-paroles, égaliseur par app, AirPods, batterie, météo, envoi de fichiers depuis l'iPhone.
+Island fait de l'encoche du Mac une zone vivante : musique en cours, paroles,
+égaliseur par app, écouteurs, batterie, météo, envoi de fichiers depuis l'iPhone.
 
 Il faut macOS 26 ou plus récent (Mac Apple Silicon ou Intel).
 

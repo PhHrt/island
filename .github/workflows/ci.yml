@@ -1,0 +1,42 @@
+# Tests et build à chaque push et pull request.
+# Le job ne tourne que sur un repo public (minutes macOS gratuites) : tant que le repo est privé,
+# il est ignoré et ne consomme rien. En local, `scripts/check.sh --ios` fait la même vérification.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    if: ${{ !github.event.repository.private }}
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Versions
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+
+      - name: Tests (IslandCore, PortalKit)
+        run: swift test
+
+      - name: App Mac (signature ad hoc)
+        run: scripts/make-app.sh
+
+      - name: App iPhone Portal (simulateur)
+        run: |
+          brew install xcodegen
+          cd PortalApp
+          xcodegen
+          xcodebuild -project IslandPortal.xcodeproj -scheme IslandPortal \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath ../.build/ios \
+            CODE_SIGNING_ALLOWED=NO build
