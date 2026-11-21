@@ -1,13 +1,20 @@
 #!/bin/zsh
-# Construit build/Island.app : binaire Swift (release) + helper Now Playing + Info.plist, signé ad hoc.
+# Construit build/Island.app : binaire Swift (release) + helper Now Playing + Info.plist, signé.
+# UNIVERSAL=1 produit une app universelle (Apple Silicon + Intel), utilisée par make-dmg.sh.
 # Usage : scripts/make-app.sh [--run | --install]
 #   --run     relance l'app depuis build/ (développement)
 #   --install copie l'app dans /Applications et la relance depuis là (usage quotidien)
 set -e
 cd "$(dirname "$0")/.."
 
-swift build -c release 2>&1 | grep -vE "^\[[0-9]+/[0-9]+\]" || true
-BIN="$(swift build -c release --show-bin-path)/Island"
+ARCH_ARGS=()
+CLANG_ARCH=()
+if [[ -n "$UNIVERSAL" ]]; then
+  ARCH_ARGS=(--arch arm64 --arch x86_64)
+  CLANG_ARCH=(-arch arm64 -arch x86_64)
+fi
+swift build -c release --product Island "${ARCH_ARGS[@]}" 2>&1 | grep -vE "^\[[0-9]+/[0-9]+\]" || true
+BIN="$(swift build -c release --product Island "${ARCH_ARGS[@]}" --show-bin-path)/Island"
 [[ -x "$BIN" ]] || { echo "build Swift en échec"; exit 1; }
 
 APP=build/Island.app
@@ -16,7 +23,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/nowplaying"
 cp "$BIN" "$APP/Contents/MacOS/Island"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 
-clang -dynamiclib -fblocks -O2 -framework CoreFoundation \
+clang -dynamiclib -fblocks -O2 "${CLANG_ARCH[@]}" -framework CoreFoundation \
   Helpers/nowplaying/mr_helper.c -o "$APP/Contents/Resources/nowplaying/mr_helper.dylib"
 cp Helpers/nowplaying/run.pl "$APP/Contents/Resources/nowplaying/run.pl"
 

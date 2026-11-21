@@ -31,6 +31,7 @@ enum Prefs {
         // Phase 4
         static let portal = "portal"
         static let portalFolder = "portalFolder"
+        static let notchlessPillVisible = "notchlessPillVisible"
     }
 
     enum Theme: String, CaseIterable, Identifiable {
@@ -82,6 +83,7 @@ enum Prefs {
             Key.lockFocus: true,
             Key.lockWordByWord: true,
             Key.portal: true,
+            Key.notchlessPillVisible: false,
         ])
     }
 
@@ -99,6 +101,7 @@ enum Prefs {
     static var audioDeviceToasts: Bool { d.bool(forKey: Key.audioDeviceToasts) }
     static var theme: Theme { Theme(rawValue: d.string(forKey: Key.theme) ?? "") ?? .dark }
     static var portal: Bool { d.bool(forKey: Key.portal) }
+    static var notchlessPillVisible: Bool { d.bool(forKey: Key.notchlessPillVisible) }
     static var lockScreen: Bool { d.bool(forKey: Key.lockScreen) }
     static var lockScreenBottom: Bool { d.bool(forKey: Key.lockScreenBottom) }
     static var screen: ScreenChoice { ScreenChoice(rawValue: d.string(forKey: Key.screen) ?? "") ?? .notch }

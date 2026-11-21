@@ -17,6 +17,7 @@ struct GeneralSettings: View {
     @AppStorage(Prefs.Key.audioDeviceToasts) private var audioDeviceToasts = true
     @AppStorage(Prefs.Key.theme) private var theme = Prefs.Theme.dark.rawValue
     @AppStorage(Prefs.Key.screen) private var screen = Prefs.ScreenChoice.notch.rawValue
+    @AppStorage(Prefs.Key.notchlessPillVisible) private var notchlessPill = false
 
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
     @State private var loginError: String?
@@ -45,6 +46,9 @@ struct GeneralSettings: View {
                 Picker("Écran", selection: $screen) {
                     ForEach(Prefs.ScreenChoice.allCases) { Text($0.label).tag($0.rawValue) }
                 }
+                Toggle("Sans encoche : garder une petite île visible au repos", isOn: $notchlessPill)
+                Text("Sur un écran externe ou MacBook fermé, l'île apparaît quand il se passe quelque chose ou quand la souris touche le haut de l'écran, au centre.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             Section("Musique") {
                 Toggle("Afficher la lecture en cours", isOn: $showMusic)

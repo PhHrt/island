@@ -78,7 +78,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         bat.start()
         battery = bat
 
-        // Debug : `scripts/island-debug.sh toggle|toast` ouvre l'île ou simule un toast sans toucher à la souris.
+        // Commandes de debug (`scripts/island-debug.sh …`). N'importe quel programme du Mac peut poster une
+        // notification distribuée : elles ne sont donc actives que si on l'a demandé explicitement avec
+        // `defaults write dev.island.app debugCommands -bool YES` (jamais dans une version distribuée).
+        guard UserDefaults.standard.bool(forKey: "debugCommands") else { return }
         DistributedNotificationCenter.default().addObserver(forName: .init("dev.island.debug"), object: nil,
                                                             queue: .main) { [weak self] note in
             MainActor.assumeIsolated {

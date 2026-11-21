@@ -44,6 +44,10 @@ final class IslandModel {
         return .idle
     }
 
+    /// Sans encoche (écran externe, MacBook fermé), l'île disparaît au repos : elle ne revient qu'au survol
+    /// du haut de l'écran ou quand il y a quelque chose à montrer, sauf si l'utilisateur veut la garder.
+    var hidesWhenIdle: Bool { !notch.hasNotch && !Prefs.notchlessPillVisible }
+
     /// Paroles synchronisées disponibles pour le morceau en cours.
     var hasSyncedLyrics: Bool {
         Prefs.lyrics && Prefs.showMusic && nowPlaying != nil && lyrics?.isSynced == true
@@ -115,7 +119,8 @@ struct NotchMetrics: Equatable {
     /// Lit la géométrie réelle de l'encoche ; sans encoche, simule une petite pilule.
     static func of(_ screen: NSScreen) -> NotchMetrics {
         let top = screen.safeAreaInsets.top
-        if top > 0, let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea {
+        // `defaults write dev.island.app simulateNoNotch -bool YES` : teste le mode sans encoche sur un MacBook.
+        if top > 0, !UserDefaults.standard.bool(forKey: "simulateNoNotch"), let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea {
             let width = screen.frame.width - left.width - right.width
             return NotchMetrics(width: width, height: top, hasNotch: true)
         }
@@ -152,6 +157,23 @@ enum DebugLog {
             h.seekToEndOfFile()
             h.write(Data(line.utf8))
             try? h.close()
+        }
+    }
+}
+
+/// Choix de l'écran qui porte l'île (et la carte d'écran verrouillé, l'arrivée Portal).
+enum IslandScreens {
+    @MainActor static var current: NSScreen? {
+        let primary = NSScreen.screens.first // écran de la barre de menus
+        switch Prefs.screen {
+        case .notch:
+            // MacBook fermé ou sans encoche : on se rabat sur l'écran principal.
+            return NSScreen.screens.first { $0.safeAreaInsets.top > 0 } ?? primary
+        case .main:
+            return primary
+        case .mouse:
+            let p = NSEvent.mouseLocation
+            return NSScreen.screens.first { NSMouseInRect(p, $0.frame, false) } ?? primary
         }
     }
 }

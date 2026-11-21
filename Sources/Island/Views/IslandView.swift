@@ -69,7 +69,10 @@ struct IslandView: View {
         case (true, .dark):
             shape.fill(.black).shadow(color: .black.opacity(0.35), radius: 16, y: 6)
         case (false, _):
+            // Au repos sans encoche : invisible, sauf au survol (on montre où cliquer).
             shape.fill(.black)
+                .opacity(model.mode == .idle && model.hidesWhenIdle && !model.isHovering ? 0 : 1)
+                .animation(.easeOut(duration: 0.2), value: model.isHovering)
         }
     }
 

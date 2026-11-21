@@ -9,7 +9,7 @@ final class PortalArrivalController {
     private var hideTask: Task<Void, Never>?
 
     func show(_ item: PortalItem) {
-        guard let screen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 }) ?? NSScreen.main else { return }
+        guard let screen = IslandScreens.current else { return }
         let size = NSSize(width: 360, height: 360)
         let panel = self.panel ?? makePanel()
         self.panel = panel

@@ -24,6 +24,17 @@ Pas de CI GitHub (pas de minutes Actions) : tout se vérifie en local avec `scri
 
 Debug : `touch ~/Library/Logs/Island.log` active un petit journal (raisons de fermeture, etc.).
 
+### Distribuer Island (autre Mac)
+
+`scripts/make-dmg.sh` produit `build/Island-<version>.dmg` : app universelle (Apple Silicon + Intel, macOS 26+),
+raccourci vers Applications et notice `Resources/Installation.txt`. L'app est signée « Apple Development » mais pas
+notarisée : au premier lancement, Réglages Système → Confidentialité et sécurité → « Ouvrir quand même ».
+Les commandes de debug y sont inactives (`defaults write dev.island.app debugCommands -bool YES` pour les activer).
+
+Sans encoche (écran externe, MacBook fermé), l'île se place sur l'écran principal et reste invisible au repos ;
+elle apparaît pour une activité ou au survol du haut de l'écran. Test sur un MacBook :
+`defaults write dev.island.app simulateNoNotch -bool YES` puis relancer Island.
+
 ### Portal (iPhone -> Mac)
 
 - App iPhone dans `PortalApp/` : `cd PortalApp && xcodegen && open IslandPortal.xcodeproj`. Pour l'installer sur

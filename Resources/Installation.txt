@@ -1,0 +1,53 @@
+ISLAND — INSTALLATION
+=====================
+
+Island fait de l'encoche du Mac une zone vivante : musique en cours,
+paroles, égaliseur par app, AirPods, batterie, météo, envoi de fichiers depuis l'iPhone.
+
+Il faut macOS 26 ou plus récent (Mac Apple Silicon ou Intel).
+
+
+1. INSTALLER
+------------
+Glisse « Island » sur le dossier « Applications » dans cette fenêtre.
+
+
+2. PREMIER LANCEMENT
+--------------------
+Island n'est pas distribuée par l'App Store, donc macOS la bloque la première fois :
+
+  a. Ouvre Island depuis le dossier Applications. macOS affiche un message
+     disant qu'il ne peut pas vérifier l'app : clique sur « Terminé ».
+  b. Ouvre Réglages Système → Confidentialité et sécurité.
+  c. Tout en bas, à côté de « Island a été bloquée », clique sur « Ouvrir quand même »,
+     puis confirme avec ton mot de passe ou Touch ID.
+
+C'est à faire une seule fois.
+
+
+3. RÉGLAGES
+-----------
+Island n'a pas d'icône dans le Dock. Pour les réglages : icône en forme de pilule dans
+la barre de menus, ou clic droit sur l'île en haut de l'écran.
+
+  - Lancer Island à l'ouverture de session : Réglages → Général.
+  - Sans encoche (écran externe, MacBook fermé) : l'île apparaît quand il se passe
+    quelque chose, ou quand la souris touche le haut de l'écran au centre.
+    Réglages → Général → Apparence pour la garder toujours visible ou choisir l'écran.
+
+
+4. AUTORISATIONS (selon ce que tu utilises)
+-------------------------------------------
+macOS les demande la première fois qu'une fonction en a besoin :
+
+  - Égaliseur par app : « Enregistrement audio système ». Si rien ne se passe,
+    Réglages Système → Confidentialité et sécurité → Enregistrement de l'écran
+    et de l'audio système → active Island.
+  - Batterie des écouteurs : Bluetooth.
+  - Indicateur Concentration : accès au statut de Concentration.
+  - Portal (fichiers depuis l'iPhone) : réseau local.
+
+
+Rien n'est envoyé nulle part, à part le titre du morceau à LRCLib (paroles)
+et les coordonnées de la ville choisie à Open-Meteo (météo). Les deux se coupent
+dans les réglages.

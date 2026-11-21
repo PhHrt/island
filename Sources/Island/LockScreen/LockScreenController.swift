@@ -41,7 +41,7 @@ final class LockScreenController {
 
     /// `onLockScreen: false` = aperçu ordinaire (debug), sans SkyLight.
     func show(onLockScreen: Bool) {
-        guard let screen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 }) ?? NSScreen.main else { return }
+        guard let screen = IslandScreens.current else { return }
         let panel = self.panel ?? makePanel()
         self.panel = panel
 

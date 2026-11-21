@@ -76,19 +76,7 @@ final class IslandPanelController {
         }
     }
 
-    /// Écran qui porte l'île, selon le réglage « Écran ».
-    private var screen: NSScreen? {
-        let primary = NSScreen.screens.first
-        switch Prefs.screen {
-        case .notch:
-            return NSScreen.screens.first { $0.safeAreaInsets.top > 0 } ?? primary
-        case .main:
-            return primary
-        case .mouse:
-            let p = NSEvent.mouseLocation
-            return NSScreen.screens.first { NSMouseInRect(p, $0.frame, false) } ?? primary
-        }
-    }
+    private var screen: NSScreen? { IslandScreens.current }
     private var currentScreenFrame: NSRect = .zero
 
     func layout() {
