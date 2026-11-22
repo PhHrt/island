@@ -68,9 +68,12 @@ final class IslandPanelController {
         }) {
             monitors.append(l)
         }
-        // Clic hors de l'île ouverte -> on referme.
+        // Clic hors de l'île ouverte -> on referme (sauf si une popup de l'île est ouverte : menu de sortie, AirPlay).
         if let c = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown], handler: { [weak self] _ in
-            MainActor.assumeIsolated { self?.collapse(reason: "clic ailleurs") }
+            MainActor.assumeIsolated {
+                guard let self, !self.popupIsOpen else { return }
+                self.collapse(reason: "clic ailleurs")
+            }
         }) {
             monitors.append(c)
         }
@@ -116,6 +119,15 @@ final class IslandPanelController {
         model.isExpanded = false
     }
 
+    /// Vrai pendant qu'un menu ou une popup (menu de sortie audio, fenêtre AirPlay) est ouvert au-dessus de l'île.
+    /// Ces popups sont en dehors de l'île : sans cette règle, la souris qui s'y déplace refermerait l'île,
+    /// et la popup perdrait son ancrage.
+    private var popupIsOpen: Bool {
+        NSApp.windows.contains { w in
+            w !== panel && w.isVisible && w.level.rawValue > NSWindow.Level.normal.rawValue
+        }
+    }
+
     private func mouseMoved() {
         if Prefs.screen == .mouse, !model.isExpanded, let s = screen, s.frame != currentScreenFrame {
             layout()
@@ -123,6 +135,7 @@ final class IslandPanelController {
         let inside = islandRect().contains(NSEvent.mouseLocation)
         panel.ignoresMouseEvents = !inside
         guard inside != model.isHovering else { return }
+        if !inside, popupIsOpen { return } // on reste ouvert tant que la popup est là
         model.isHovering = inside
 
         if inside {
