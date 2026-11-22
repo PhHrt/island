@@ -261,15 +261,34 @@ struct OutputMenu: View {
 
 /// Bouton AirPlay système (liste les enceintes AirPlay / HomePod du réseau).
 struct AirPlayButton: NSViewRepresentable {
+    @Environment(IslandModel.self) private var model
+
+    func makeCoordinator() -> Coordinator { Coordinator(model: model) }
+
     func makeNSView(context: Context) -> AVRoutePickerView {
         let v = AVRoutePickerView()
         v.isRoutePickerButtonBordered = false
         v.setRoutePickerButtonColor(.secondaryLabelColor, for: .normal)
         v.setRoutePickerButtonColor(.labelColor, for: .active)
+        v.delegate = context.coordinator
         return v
     }
 
     func updateNSView(_ nsView: AVRoutePickerView, context: Context) {}
+
+    /// Dit à l'île qu'une popup AirPlay est ouverte : elle reste alors déployée.
+    final class Coordinator: NSObject, AVRoutePickerViewDelegate {
+        let model: IslandModel
+        init(model: IslandModel) { self.model = model }
+
+        func routePickerViewWillBeginPresentingRoutes(_ routePickerView: AVRoutePickerView) {
+            MainActor.assumeIsolated { model.beginPopup() }
+        }
+
+        func routePickerViewDidEndPresentingRoutes(_ routePickerView: AVRoutePickerView) {
+            MainActor.assumeIsolated { model.endPopup() }
+        }
+    }
 }
 
 /// Dernier fichier reçu par Portal : glisser vers le Finder ou une app, clic pour l'afficher dans le Finder.

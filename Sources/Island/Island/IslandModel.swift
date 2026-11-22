@@ -37,6 +37,26 @@ final class IslandModel {
     @ObservationIgnored var seek: (Double) -> Void = { _ in }
     @ObservationIgnored var selectOutput: (AudioDevice) -> Void = { _ in }
 
+    /// Popup ouverte au-dessus de l'île (menu de sortie, fenêtre AirPlay) : l'île reste alors déployée.
+    private var popupsOpen = 0
+    private var popupStartedAt: Date?
+
+    func beginPopup() {
+        popupsOpen += 1
+        popupStartedAt = Date()
+    }
+
+    func endPopup() {
+        popupsOpen = max(0, popupsOpen - 1)
+    }
+
+    /// Vrai tant qu'une popup est ouverte. Une popup restée « ouverte » plus de 2 minutes est ignorée,
+    /// pour qu'une fin manquée ne bloque jamais l'île.
+    var isPopupOpen: Bool {
+        guard popupsOpen > 0, let start = popupStartedAt else { return false }
+        return Date().timeIntervalSince(start) < 120
+    }
+
     var mode: Mode {
         if isExpanded { return .expanded }
         if toast != nil { return .compact }
@@ -142,7 +162,7 @@ struct Toast: Equatable, Identifiable {
 
 enum Haptics {
     static func tap() {
-        NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+        NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .default)
     }
 }
 

@@ -68,10 +68,17 @@ final class IslandPanelController {
         }) {
             monitors.append(l)
         }
+        // Menus de l'app (menu de sortie audio = SwiftUI Menu, donc NSMenu) : l'île reste ouverte pendant qu'ils sont ouverts.
+        NotificationCenter.default.addObserver(forName: NSMenu.didBeginTrackingNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.model.beginPopup() }
+        }
+        NotificationCenter.default.addObserver(forName: NSMenu.didEndTrackingNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.model.endPopup() }
+        }
         // Clic hors de l'île ouverte -> on referme (sauf si une popup de l'île est ouverte : menu de sortie, AirPlay).
         if let c = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown], handler: { [weak self] _ in
             MainActor.assumeIsolated {
-                guard let self, !self.popupIsOpen else { return }
+                guard let self, !self.model.isPopupOpen else { return }
                 self.collapse(reason: "clic ailleurs")
             }
         }) {
@@ -119,15 +126,6 @@ final class IslandPanelController {
         model.isExpanded = false
     }
 
-    /// Vrai pendant qu'un menu ou une popup (menu de sortie audio, fenêtre AirPlay) est ouvert au-dessus de l'île.
-    /// Ces popups sont en dehors de l'île : sans cette règle, la souris qui s'y déplace refermerait l'île,
-    /// et la popup perdrait son ancrage.
-    private var popupIsOpen: Bool {
-        NSApp.windows.contains { w in
-            w !== panel && w.isVisible && w.level.rawValue > NSWindow.Level.normal.rawValue
-        }
-    }
-
     private func mouseMoved() {
         if Prefs.screen == .mouse, !model.isExpanded, let s = screen, s.frame != currentScreenFrame {
             layout()
@@ -135,7 +133,7 @@ final class IslandPanelController {
         let inside = islandRect().contains(NSEvent.mouseLocation)
         panel.ignoresMouseEvents = !inside
         guard inside != model.isHovering else { return }
-        if !inside, popupIsOpen { return } // on reste ouvert tant que la popup est là
+        if !inside, model.isPopupOpen { return } // on reste ouvert tant que la popup est là
         model.isHovering = inside
 
         if inside {
